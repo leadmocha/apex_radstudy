@@ -7,6 +7,7 @@
 #include "G4UIcmdWithADouble.hh"
 #include "G4UIcmdWithABool.hh"
 #include "G4UIcmdWith3Vector.hh"
+#include <CmdWithAStringAndBool.hh>
 
 #ifdef __APPLE__
 #include <unistd.h>
@@ -16,7 +17,12 @@ Messenger::Messenger()
 {
   fieldCmd = new G4UIcmdWithAString("/radStudy/field", this);
   fieldCmd->SetGuidance("TOSCA field map file");
-  fieldCmd->SetParameterName("field", false);
+  fieldCmd->SetParameterName("field", true);
+  fieldCmd->SetDefaultValue("");
+
+  buildDetectorCmd = new CmdWithAStringAndBool("/radStudy/buildDetector", this);
+  buildDetectorCmd->SetGuidance("Build Detector detector");
+  buildDetectorCmd->SetParameterName("enableDetector", false);
 
   rootfileCmd = new G4UIcmdWithAString("/radStudy/rootfile", this);
   rootfileCmd->SetGuidance("File name of the output ROOT file");
@@ -47,11 +53,13 @@ Messenger::~Messenger()
   delete q1versionCmd;
   delete targetCmd;
   delete targetThickRLCmd;
+  delete buildDetectorCmd;
 }
 
 
 void Messenger::SetNewValue(G4UIcommand* cmd, G4String newValue)
 {
+  G4bool success = true;
   if( cmd == fieldCmd ) {
     gRadConfig->SeptaFieldFilename = newValue;
   } else if ( cmd == beamEnergyCmd ) {
@@ -85,8 +93,19 @@ void Messenger::SetNewValue(G4UIcommand* cmd, G4String newValue)
     }
   } else if (cmd == targetThickRLCmd ) {
     gRadConfig->TargetThickRL = targetThickRLCmd->GetNewDoubleValue(newValue);
+  } else if (cmd == buildDetectorCmd ) {
+    //G4String detName = buildDetectorCmd->GetParamString(newValue,0);
+    //G4bool build = buildDetectorCmd->GetNewbuildDetectorCmd->GetParamString(newValue,0);
+    std::pair<G4String,G4bool> result = buildDetectorCmd->GetResult(
+        newValue);
+    success = gRadConfig->SetDetectorBuild(result.first,result.second);
   } else {
     G4cerr << "Unknown command!!" << G4endl;
+    exit(-1);
+  }
+
+  if(!success) {
+    G4cerr << "Command failed, exiting!!!" << G4endl;
     exit(-1);
   }
 }
