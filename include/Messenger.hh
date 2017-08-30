@@ -8,6 +8,7 @@ class G4UIcmdWithAnInteger;
 class G4UIcmdWithADoubleAndUnit;
 class G4UIcmdWithADouble;
 class G4UIcmdWithAString;
+class CmdWithAStringAndBool;
 class G4UIcmdWithABool;
 class G4UIcmdWith3Vector;
 
@@ -25,6 +26,7 @@ private:
   G4UIcmdWithAString *q1versionCmd;
   G4UIcmdWithAString *targetCmd;
   G4UIcmdWithADouble *targetThickRLCmd;
+  CmdWithAStringAndBool *buildDetectorCmd;
 };
 
 #endif//Messenger_HH

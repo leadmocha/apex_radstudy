@@ -523,18 +523,20 @@ HallA::HallA(B1DetectorConstruction *dc, G4LogicalVolume *logicWorld):fDetCon(dc
   //////////////////////////////APEX Target/////////////////////////////////
   //////////////////////////////////////////////////////////////////////////
 
-  //Target is described in APEXTarget.cc
-  switch(gRadConfig->TargetType) {
-    case RadTargetType::APEX:
-      (void)new APEXTarget(dc,this,logicWorld);
-      break;
-    case RadTargetType::CARBON:
-      MakeCarbonCrosscheckTarget(logicWorld);
-      break;
-    default:
-      break;
+  if( gRadConfig->BuildDetector("Target") ) {
+    //Target is described in APEXTarget.cc
+    switch(gRadConfig->TargetType) {
+      case RadTargetType::APEX:
+        (void)new APEXTarget(dc,this,logicWorld);
+        break;
+      case RadTargetType::CARBON:
+        MakeCarbonCrosscheckTarget(logicWorld);
+        break;
+      default:
+        break;
+    }
+    //APEXTarget* target = new APEXTarget(dc,this,logicWorld);
   }
-  //APEXTarget* target = new APEXTarget(dc,this,logicWorld);
 
 
   //////////////////////////////////////////////////////////////////////////
@@ -548,14 +550,18 @@ HallA::HallA(B1DetectorConstruction *dc, G4LogicalVolume *logicWorld):fDetCon(dc
   //////////////////////////////Septa Magnet////////////////////////////////
   //////////////////////////////////////////////////////////////////////////
 
-  //Septa described in SeptaMagnet.cc
-  G4bool fieldON = 0;
-  if(!gRadConfig->SeptaFieldFilename.isNull()) {
-    fieldON = 1;
-    G4cout << "Reading Septum Field from: "
-      << gRadConfig->SeptaFieldFilename.data() << G4endl;
+  if( gRadConfig->BuildDetector("Septum") ) {
+    //Septa described in SeptaMagnet.cc
+    G4bool fieldON = 0;
+    if(!gRadConfig->SeptaFieldFilename.isNull()) {
+      fieldON = 1;
+      G4cout << "Reading Septum Field from: "
+        << gRadConfig->SeptaFieldFilename.data() << G4endl;
+    } else {
+      G4cout << "Disabling Semptum Field." << G4endl;
+    }
+    SeptaMagnet* septa = new SeptaMagnet(dc,this,logicWorld,fieldON);
   }
-  SeptaMagnet* septa = new SeptaMagnet(dc,this,logicWorld,fieldON);
 
 
   ///////////////////////////////////////////////////////////////////////////
@@ -570,47 +576,51 @@ HallA::HallA(B1DetectorConstruction *dc, G4LogicalVolume *logicWorld):fDetCon(dc
   ///////////////////////////////HRS/////////////////////////////////////////
   ///////////////////////////////////////////////////////////////////////////
 
-  //Left HRS (described in HRS.cc)
-  HRS* LHRS = new HRS(12.5*deg, dc, this, logicWorld); //send DetectorConstruction, logicAI01 and logical volumes. (+ angle)
+  if(gRadConfig->BuildDetector("HRS")) {
+    //Left HRS (described in HRS.cc)
+    HRS* LHRS = new HRS(12.5*deg, dc, this, logicWorld); //send DetectorConstruction, logicAI01 and logical volumes. (+ angle)
 
-  //Right HRS (described in HRS.cc)
-  HRS* RHRS = new HRS(-12.5*deg, dc, this, logicWorld); //send DetectorConstruction, logicAI01 and logical volumes. (- angle)
-  
-  if( gRadConfig->Q1Version == RadQ1Version::APEX ) {
-    MakeApexQ1(logicWorld);
+    //Right HRS (described in HRS.cc)
+    HRS* RHRS = new HRS(-12.5*deg, dc, this, logicWorld); //send DetectorConstruction, logicAI01 and logical volumes. (- angle)
+
+    if( gRadConfig->Q1Version == RadQ1Version::APEX ) {
+      G4cout << "Making Apex Q1 version (instead of super conducting one"
+        << G4endl;
+      MakeApexQ1(logicWorld);
+    }
+
+    ///////////////////////////////////////////////////////////////////////////
+    ///////////////////////////////Cradle//////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
+
+    //Left Cradle
+    Cradle* LCradle = new Cradle(12.5*deg, dc, this, logicWorld);
+
+    //Right Cradle
+    Cradle* RCradle = new Cradle(-12.5*deg, dc, this, logicWorld);
+
+
+    ///////////////////////////////////////////////////////////////////////////
+    ///////////////////////////////Gantry//////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
+
+    //Left Gantry
+    Gantry* LGantry = new Gantry(12.5*deg, dc, this, logicWorld);
+
+    //Right Gantry
+    Gantry* RGantry = new Gantry(-12.5*deg, dc, this, logicWorld);
+
+
+    ///////////////////////////////////////////////////////////////////////////
+    /////////////////////////////HRS Link//////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
+
+    //Left Link
+    HRSLink* LLink = new HRSLink(12.5*deg, dc, this, logicWorld);
+
+    //Right Link
+    HRSLink* RLink = new HRSLink(-12.5*deg, dc, this, logicWorld);
   }
-  
-  ///////////////////////////////////////////////////////////////////////////
-  ///////////////////////////////Cradle//////////////////////////////////////
-  ///////////////////////////////////////////////////////////////////////////
-  
-  //Left Cradle
-  Cradle* LCradle = new Cradle(12.5*deg, dc, this, logicWorld);
-  
-  //Right Cradle
-  Cradle* RCradle = new Cradle(-12.5*deg, dc, this, logicWorld);
-  
-  
-  ///////////////////////////////////////////////////////////////////////////
-  ///////////////////////////////Gantry//////////////////////////////////////
-  ///////////////////////////////////////////////////////////////////////////
-  
-  //Left Gantry
-  Gantry* LGantry = new Gantry(12.5*deg, dc, this, logicWorld);
-  
-  //Right Gantry
-  Gantry* RGantry = new Gantry(-12.5*deg, dc, this, logicWorld);
-  
-  
-  ///////////////////////////////////////////////////////////////////////////
-  /////////////////////////////HRS Link//////////////////////////////////////
-  ///////////////////////////////////////////////////////////////////////////
-  
-  //Left Link
-  HRSLink* LLink = new HRSLink(12.5*deg, dc, this, logicWorld);
-  
-  //Right Link
-  HRSLink* RLink = new HRSLink(-12.5*deg, dc, this, logicWorld);
 
 
   //////////////////////////////////////////////////////////

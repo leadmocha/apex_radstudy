@@ -2,6 +2,7 @@
 #define RadConfig_HH
 
 #include "globals.hh"
+#include <map>
 
 // Note, this only works in C++11 (and higher)
 enum class RadTargetType { APEX, CARBON, PREX, APEXCARBON };
@@ -9,6 +10,11 @@ enum class RadQ1Version{
   SUPERCONDUCTING, // 6 GeV era
   COPPER, // Water cooled "normal" Cu magnets
   APEX // Copper Q1, but basically both defined in a gdml file
+};
+
+struct RadConfigDetector {
+  G4bool build;
+  G4bool enabled;
 };
 
 class RadConfig {
@@ -27,10 +33,26 @@ public:
   RadQ1Version    Q1Version;
   G4double        TargetThickRL;
 
+  std::map<G4String,RadConfigDetector> ConfigDetectorMap;
+  void AddDetectorBuild(G4String name, G4bool build = true,
+      G4bool enable = true) {
+    name.toLower();
+    RadConfigDetector config;
+    config.build = build;
+    config.enabled = enable;
+    ConfigDetectorMap[name] = config;
+  }
+
+  // Check if this detector should be built
+  G4bool BuildDetector(G4String name);
+  // Set status of a previously defined detector
+  G4bool SetDetectorBuild(G4String name, G4bool build);
+
   // Define a singleton we can use to configure the whole simulation
 public:
   static RadConfig* GetInstance();
   static RadConfig *fInstance;
+  RadConfigDetector* GetDetector(G4String name);
 };
 
 // Get static configuration variable
