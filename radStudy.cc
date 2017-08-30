@@ -117,6 +117,7 @@ int main(int argc,char** argv)
 {
   G4String config_macro("radStudy.conf");
   G4String post_macro("");
+  G4String vis_macro("init_vis.mac");
   // Parse command line options here
   // (jc2): Copied over from g4sbs.cc
   for(int i = 1; i < argc; i++) {
@@ -128,6 +129,8 @@ int main(int argc,char** argv)
         config_macro = paramValue;
       } else if (paramName.compare("post") == 0) {
         post_macro = paramValue;
+      } else if (paramName.compare("vis") == 0) {
+        vis_macro = paramValue;
       } else {
         G4cerr << "Unknown command: " << paramName << G4endl;
         exit(-1);
@@ -243,7 +246,7 @@ int main(int argc,char** argv)
 #ifdef G4UI_USE
     G4UIExecutive* ui = new G4UIExecutive(argc, argv);
 #ifdef G4VIS_USE
-    UImanager->ApplyCommand("/control/execute init_vis.mac"); 
+    UImanager->ApplyCommand("/control/execute " + vis_macro); 
 #else
     UImanager->ApplyCommand("/control/execute init.mac"); 
 #endif
