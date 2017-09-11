@@ -115,7 +115,7 @@ void executeMacro(G4String macro, G4UImanager *UImanager)
 
 int main(int argc,char** argv)
 {
-  G4String config_macro();
+  G4String config_macro;
   G4String post_macro("");
   G4String vis_macro("init_vis.mac");
   // Parse command line options here
