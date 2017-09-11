@@ -24,6 +24,10 @@ Messenger::Messenger()
   buildDetectorCmd->SetGuidance("Build Detector detector");
   buildDetectorCmd->SetParameterName("enableDetector", false);
 
+  killDumpParticlesCmd = new G4UIcmdWithABool("/radStudy/killDumpParticles", this);
+  killDumpParticlesCmd->SetGuidance("Kill particles at dump? (stops tracking)");
+  //killDumpParticlesCmd->SetParameterName("killDumpParticles", false);
+
   rootfileCmd = new G4UIcmdWithAString("/radStudy/rootfile", this);
   rootfileCmd->SetGuidance("File name of the output ROOT file");
   rootfileCmd->SetParameterName("rootfile", false);
@@ -99,6 +103,9 @@ void Messenger::SetNewValue(G4UIcommand* cmd, G4String newValue)
     std::pair<G4String,G4bool> result = buildDetectorCmd->GetResult(
         newValue);
     success = gRadConfig->SetDetectorBuild(result.first,result.second);
+  } else if (cmd == killDumpParticlesCmd) {
+    gRadConfig->KillParticluesAtDump =
+      killDumpParticlesCmd->GetNewBoolValue(newValue);
   } else {
     G4cerr << "Unknown command!!" << G4endl;
     exit(-1);

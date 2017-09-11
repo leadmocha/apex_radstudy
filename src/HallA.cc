@@ -17,6 +17,7 @@
 #include "G4SubtractionSolid.hh"
 
 #include "Beamline.hh"
+#include "BeamDump.hh"
 #include "SeptaMagnet.hh"
 #include "APEXTarget.hh"
 #include "G4GDMLParser.hh"
@@ -28,7 +29,6 @@
 #include "G4SDManager.hh"
 #include "GenericSD.hh"
 #include "UpstreamDetSD.hh"
-#include "BMDCDetSD.hh"
 
 #include "HRS.hh"
 #include "APEXExtBox.hh"
@@ -55,14 +55,6 @@ HallA::HallA(B1DetectorConstruction *dc, G4LogicalVolume *logicWorld):fDetCon(dc
   G4double Thall = 40*cm;
   G4double TThall = 121.9*cm;
 
-  BmDEX = 205*cm; 
-  BmDEY = 271*cm;
-  BmDEZ = 1838*cm;
-  G4double BmDmX = 205*cm;
-  BmDmY = 205*cm;
-  G4double BmDmZ = 1205*cm;
-  G4double BDWth = 130*cm, BDWthz = 130*cm;
-  G4double TgX = 0.0*cm;
 
   G4double BPdiamIn = conv*2.4*cm;  //Beampipe diameters
   G4double BPdiamOut = conv*3*cm;
@@ -74,10 +66,6 @@ HallA::HallA(B1DetectorConstruction *dc, G4LogicalVolume *logicWorld):fDetCon(dc
   G4double SCheight = 99.1*cm;
   SCZ = 105*cm; //position of scattering chamber
 
-  G4double BDWRin = 53*cm; //Beam dump water barrel params
-  G4double BDWRout = 54.8*cm;
-  G4double BDWLZ = 380*cm;
-  G4double REVBD1 = 30.5*cm; //Inner radius for barrel end cap (only 1 side)
 
   HBdiam = 189.22*cm;
 
@@ -91,16 +79,59 @@ HallA::HallA(B1DetectorConstruction *dc, G4LogicalVolume *logicWorld):fDetCon(dc
   rot270X->rotateX(270*deg);
   G4RotationMatrix* rot180Z = new G4RotationMatrix();
   rot180Z->rotateZ(180*deg);
+  G4RotationMatrix* rotTmp = 0;
+
+  /////////////////////////////////////////////////////////////////////////////
+  ///////////////////////////////Beam Dump/////////////////////////////////////
+  /////////////////////////////////////////////////////////////////////////////
+  G4LogicalVolume *logicBeamDump = 0;
+  G4ThreeVector originBeamDump;
+  G4ThreeVector originBeamDumpLocal;
+  BeamDump *beamDump = new BeamDump(dc,this);
+  G4VSolid *solidBeamDump = 0;
+  G4bool beamDumpOrigVersion = true;
+  if( gRadConfig->BuildDetector("BeamDump") ) {
+    if( gRadConfig->BeamDumpVersion == RadBeamDumpVersion::UPDATEDVERSION ) {
+      logicBeamDump = beamDump->ConstructBeamDump();
+      originBeamDumpLocal = beamDump->getLocalOrigin();
+      originBeamDump = originBeamDumpLocal + G4ThreeVector(0.,0.,Rhall);
+      G4VPhysicalVolume *physEnclosure = new G4PVPlacement(0,originBeamDump,
+      logicBeamDump,"BeamDumpWorld",logicWorld,false,0,checkOverlaps);
+      solidBeamDump = logicBeamDump->GetSolid();
+      beamDumpOrigVersion = false;
+    } else {
+      beamDump->ConstructBeamDumpOrig(logicWorld);
+    }
+  }
+  BmDEX  = beamDump->getBmDEX();
+  BmDEY  = beamDump->getBmDEY();
+  BmDEZ  = beamDump->getBmDEZ();
+  G4double BmDmX  = beamDump->getBmDmX();
+  BmDmY  = beamDump->getBmDmY();
+  G4double BmDmZ  = beamDump->getBmDmZ();
+  G4double BDWth  = beamDump->getBDWth();
+  G4double BDWthz = beamDump->getBDWthz();
+  G4double TgX    = beamDump->getTgX();
+
 
   ///////////////////////////////////////////////////////////////////////////////
   ////////////////////////////////Ground/////////////////////////////////////////
   ///////////////////////////////////////////////////////////////////////////////
 
-  G4double Ground = Tgrnd; 
+  G4double Ground = Tgrnd;
   par[1] = Rspace;
   par[2] = Ground/2;
   par[3] = Rspace;
-  G4Box* solidGrnd = new G4Box("Grnd",par[1],par[2],par[3]);
+  G4VSolid* solidGrnd = 0;
+  G4Box* solidGrnd1 =  new G4Box("Grnd",par[1],par[2],par[3]);
+  // May need to remove part of the ground so the beam dump fits
+  if(solidBeamDump) {
+    solidGrnd = new G4SubtractionSolid("GrndCut",
+        solidGrnd1,solidBeamDump,0,
+        originBeamDump+G4ThreeVector(0.,par[2]+bmheight,0.));
+  } else {
+    solidGrnd = solidGrnd1;
+  }
   G4LogicalVolume* logicGrnd = new G4LogicalVolume(solidGrnd,GetMaterial("Ground"),"Grnd");
   X = 0;
   Y = -bmheight - Ground/2;
@@ -115,7 +146,17 @@ HallA::HallA(B1DetectorConstruction *dc, G4LogicalVolume *logicWorld):fDetCon(dc
   par[1] = 0;
   par[2] = Rhall + Thall;
   par[3] = Flrthick/2;
-  G4Tubs* solidHACF = new G4Tubs("HACF",par[1],par[2],par[3],0,2*pi);
+  G4VSolid *solidHACF = 0;
+  G4Tubs* solidHACF1 = new G4Tubs("HACF",par[1],par[2],par[3],0,2*pi);
+  // May need to remove part of the floor so the beam dump fits
+  if(solidBeamDump) {
+    solidHACF = new G4SubtractionSolid("HACFCut",
+        solidHACF1,solidBeamDump,rot270X,
+        G4ThreeVector(originBeamDump.x(),-originBeamDump.z(),
+            originBeamDump.y() + bmheight + Flrthick/2.));
+  } else {
+    solidHACF = solidHACF1;
+  }
   G4LogicalVolume* logicHACF = new G4LogicalVolume(solidHACF,GetMaterial("Concrete"),"HACF");
   X = 0;
   Y = Ground/2 - Flrthick/2;
@@ -134,16 +175,27 @@ HallA::HallA(B1DetectorConstruction *dc, G4LogicalVolume *logicWorld):fDetCon(dc
   par[2] = Rhall + Thall;
   par[3] = Flrdeep/2;
   G4Tubs* solidConWall = new G4Tubs("ConWall",par[1],par[2],par[3],0,2*pi);
+  if(!solidBeamDump) {
+    //Remove material for beam dump from Concrete Wall
+    par[1] = BmDEX/2 + BDWth;
+    par[2] = BmDEY/2 + BDWth;
+    par[3] = BmDEZ/2 + 10*cm; //Extra 10*cm was added to make sure it cuts through
+    solidBeamDump = new G4Box("BD1",par[1],par[2],par[3]);
+    X = 0;
+    Y = -(sqrt(pow(Rhall,2)-pow((BmDEX/2+abs(TgX)),2)) + BmDEZ/2);
+    Z = - Flrdeep/2 + bmheight - 0.5*(BmDEY-BmDmY);
+    //originBeamDump = X;
+    originBeamDump.set(X,Z,Y);
+  } else { // Do it the better way, just get the actual beam dump solid
+    X = originBeamDump.x();
+    //Y = -(sqrt(pow(Rhall,2)-pow((BmDEX/2+abs(TgX)),2)) + BmDEZ/2);
+    // The 10cm offset is to make sure it cuts all the way through the wall
+    Y = -originBeamDump.z()+10*cm;
+    Z = -Flrdeep/2 + bmheight + originBeamDump.y();
+  }
 
-  //Remove material for beam dump from Concrete Wall
-  par[1] = BmDEX/2 + BDWth;
-  par[2] = BmDEY/2 + BDWth;
-  par[3] = BmDEZ/2 + 10*cm; //Extra 10*cm was added to make sure it cuts through
-  G4Box* solidBD1 = new G4Box("BD1",par[1],par[2],par[3]);
-  X = 0;
-  Y = -(sqrt(pow(Rhall,2)-pow((BmDEX/2+abs(TgX)),2)) + BmDEZ/2);
-  Z = - Flrdeep/2 + bmheight - 0.5*(BmDEY-BmDmY);
-  G4SubtractionSolid* solidConWall_BD = new G4SubtractionSolid("conWall-BD1",solidConWall, solidBD1,rot270X,G4ThreeVector(X,Y,Z));
+  G4SubtractionSolid* solidConWall_BD = new G4SubtractionSolid("conWall-BD1",
+      solidConWall, solidBeamDump,rot270X,G4ThreeVector(X,Y,Z));
 
   G4LogicalVolume* logicConWall = new G4LogicalVolume(solidConWall_BD,GetMaterial("Concrete"),"ConWall");
   X = 0;
@@ -163,10 +215,14 @@ HallA::HallA(B1DetectorConstruction *dc, G4LogicalVolume *logicWorld):fDetCon(dc
   G4Tubs* solidHATW = new G4Tubs("HATW",par[1],par[2],par[3],pi*250/180,pi*40/180);
 
   //Remove material for beam dump
-  X = 0;
-  Y = -(sqrt(pow(Rhall,2)-pow((BmDEX/2+abs(TgX)),2)) + BmDEZ/2);
-  Z = - Flrdeep/2 + bmheight - 0.5*(BmDEY-BmDmY);
-  G4SubtractionSolid* solidHATW_BD = new G4SubtractionSolid("HATW-BD1",solidHATW, solidBD1,rot270X,G4ThreeVector(X,Y,Z));
+  //X = 0;
+  //Y = -(sqrt(pow(Rhall,2)-pow((BmDEX/2+abs(TgX)),2)) + BmDEZ/2);
+  //Z = - Flrdeep/2 + bmheight - 0.5*(BmDEY-BmDmY);
+  X = originBeamDump.x();
+  Y = -originBeamDump.z();
+  Z = -Flrdeep/2 + bmheight + originBeamDump.y();
+  G4SubtractionSolid* solidHATW_BD = new G4SubtractionSolid("HATW-BD1",solidHATW,
+      solidBeamDump,rot270X,G4ThreeVector(X,Y,Z));
 
   G4LogicalVolume* logicHATW = new G4LogicalVolume(solidHATW_BD,GetMaterial("Concrete"),"HATW");
   X = 0;
@@ -201,21 +257,30 @@ HallA::HallA(B1DetectorConstruction *dc, G4LogicalVolume *logicWorld):fDetCon(dc
   par[3] = Flrdeep/2;
   G4Tubs* solidSoilthick = new G4Tubs("Soilthick",par[1],par[2],par[3],0,2*pi);
 
-  //Remove material for beam dump part1 from Soil
-  X = 0;
-  Y = -(sqrt(pow(Rhall,2)-pow((BmDEX/2+abs(TgX)),2)) + BmDEZ/2);
-  Z = - Flrdeep/2 + bmheight - 0.5*(BmDEY-BmDmY);
-  G4SubtractionSolid* solidSoilthick_BD1 = new G4SubtractionSolid("Soilthick-BD1",solidSoilthick, solidBD1,rot270X,G4ThreeVector(X,Y,Z));
 
-  //Remove material for beam dump part2 from Soil
-  par[1] = BmDmX/2 + BDWth;
-  par[2] = BmDmY/2 + BDWth;
-  par[3] = BmDmZ/2 + BDWthz/2;
-  G4Box* BD2 = new G4Box("BD2",par[1],par[2],par[3]);
-  X = TgX;
-  Y = -(sqrt(pow(Rhall,2)-pow(BmDEX/2+abs(TgX),2)) + BmDEZ + BmDmZ/2 + BDWthz/2);
-  Z = - Flrdeep/2 + bmheight;
-  G4SubtractionSolid* solidSoilthick_BD2 = new G4SubtractionSolid("Soilthick_BD1-BD2",solidSoilthick_BD1, BD2,rot270X,G4ThreeVector(X,Y,Z));
+  //Remove material for beam dump from Soil
+  G4VSolid *solidSoilthickCut = 0;
+  if(beamDumpOrigVersion) {
+    X = 0;
+    Y = -(sqrt(pow(Rhall,2)-pow((BmDEX/2+abs(TgX)),2)) + BmDEZ/2);
+    Z = - Flrdeep/2 + bmheight - 0.5*(BmDEY-BmDmY);
+    solidSoilthickCut = new G4SubtractionSolid("Soilthick-BD1",solidSoilthick, solidBeamDump,rot270X,G4ThreeVector(X,Y,Z));
+
+    //Remove material for beam dump part2 from Soil
+    par[1] = BmDmX/2 + BDWth;
+    par[2] = BmDmY/2 + BDWth;
+    par[3] = BmDmZ/2 + BDWthz/2;
+    solidBeamDump = new G4Box("BD2",par[1],par[2],par[3]);
+    X = TgX;
+    Y = -(sqrt(pow(Rhall,2)-pow(BmDEX/2+abs(TgX),2)) + BmDEZ + BmDmZ/2 + BDWthz/2);
+    Z = - Flrdeep/2 + bmheight;
+  } else {
+    solidSoilthickCut = solidSoilthick;
+    X = originBeamDump.x();
+    Y = -originBeamDump.z();
+    Z = originBeamDump.y() - Flrdeep/2. + bmheight;
+  }
+  G4SubtractionSolid* solidSoilthick_BD2 = new G4SubtractionSolid("Soilthick_BD1-BD2",solidSoilthickCut, solidBeamDump,rot270X,G4ThreeVector(X,Y,Z));
   G4LogicalVolume* logicSoilthick = new G4LogicalVolume(solidSoilthick_BD2,GetMaterial("Ground"),"Soilthick");
   X = 0;
   Y = Flrdeep/2 - bmheight;
@@ -224,161 +289,6 @@ HallA::HallA(B1DetectorConstruction *dc, G4LogicalVolume *logicWorld):fDetCon(dc
   G4VisAttributes* Soilthickvis = new G4VisAttributes(0);
   Soilthickvis->SetColor(0.8,0.5,0.2);
   logicSoilthick->SetVisAttributes(Soilthickvis);
-
-
-  /////////////////////////////////////////////////////////////////////////////
-  ///////////////////////////////Beam Dump/////////////////////////////////////
-  /////////////////////////////////////////////////////////////////////////////
-
-
-  /////////////////////Beam dump entrance concrete (BDEC)//////////////////////
-  par[1] = BmDEX/2 + BDWth;
-  par[2] = BmDEY/2 + BDWth;
-  par[3] = BmDEZ/2;
-  G4Box* solidBDECwall = new G4Box("BDECwall",par[1],par[2],par[3]);
-
-  //Remove core leaving the concrete walls
-  par[1] = BmDEX/2;
-  par[2] = BmDEY/2;
-  par[3] = BmDEZ/2 + 1*cm;
-  G4Box* solidBMDE = new G4Box("BMDE",par[1],par[2],par[3]);
-  G4SubtractionSolid* solidBDEC = new G4SubtractionSolid("BDECwall-BMDE",solidBDECwall, solidBMDE,0,G4ThreeVector());
-  G4LogicalVolume* logicBDEC = new G4LogicalVolume(solidBDEC,GetMaterial("Concrete"),"BDEC");
-  X = 0;
-  Y = - 0.5*(BmDEY-BmDmY);
-  Z = (sqrt(pow(Rhall,2)-pow((BmDEX/2+abs(TgX)),2)) + BmDEZ/2);
-  G4VPhysicalVolume* physBDEC = new G4PVPlacement(0,G4ThreeVector(X,Y,Z),logicBDEC,"BDEC",logicWorld, false,0,checkOverlaps);
-  G4VisAttributes* BDECvis = new G4VisAttributes(1);
-  BDECvis->SetForceWireframe(false);
-  BDECvis->SetColor(0.0,1.0,0.0);
-  BDECvis->SetDaughtersInvisible(false);
-  logicBDEC->SetVisAttributes(BDECvis);
-
-  /////////////////////////Beam Dump concrete (BMDC)//////////////////////////
-  par[1] = BmDmX/2 + BDWth;
-  par[2] = BmDmY/2 + BDWth;
-  par[3] = BmDmZ/2 + BDWthz/2;
-  G4Box* solidBMDCwall = new G4Box("BMDC",par[1],par[2],par[3]);
- //Remove core leaving the concrete walls
-  par[1] = BmDmX/2;
-  par[2] = BmDmY/2;
-  par[3] = BmDmZ/2 + 1*cm;  //sometimes you need to cut more to see it on the surface
-  G4Box* solidBMDM = new G4Box("BMDM",par[1],par[2],par[3]);
-  G4SubtractionSolid* solidBMDC = new G4SubtractionSolid("BMDCwall-BMDM",solidBMDCwall, solidBMDM,0,G4ThreeVector(0,0,-BDWthz/2));
-  G4LogicalVolume* logicBMDC = new G4LogicalVolume(solidBMDC,GetMaterial("Concrete"),"BMDC");
-  X = 0;
-  Y = 0;
-  Z = (sqrt(pow(Rhall,2)-pow(BmDEX/2+abs(TgX),2)) + BmDEZ + BmDmZ/2 + BDWthz/2);
-  G4VPhysicalVolume* physBMDC = new G4PVPlacement(0,G4ThreeVector(X,Y,Z),logicBMDC,"BMDC",logicWorld, false,0,checkOverlaps);
-  G4VisAttributes* BMDCvis = new G4VisAttributes(1);
-  BMDCvis->SetColor(0.0,1.0,0.0);
-  BMDCvis->SetForceWireframe(false);
-  logicBMDC->SetVisAttributes(BMDCvis);
-
-
-  /////////////////////////////////////////////////////////////////////////////
-  ////////////////////////Beam Dump Water barrel///////////////////////////////
-  /////////////////////////////////////////////////////////////////////////////
-
-  //Water volume in the Beamdump water barrel - WBWV
-  par[1] = 0;
-  par[2] = BDWRout;
-  par[3] = BDWLZ/2;
-  G4Tubs* solidWBWV = new G4Tubs("WBWV",par[1],par[2],par[3],0,2*pi);
-  G4LogicalVolume* logicWBWV = new G4LogicalVolume(solidWBWV,GetMaterial("Water"),"WBWV");
-  G4double BDWBposZ = 2570*cm; //Distance from Wall
-  X = 0;
-  Y = 0;
-  Z = Rhall + BDWBposZ;
-  G4VPhysicalVolume* physWBWV = new G4PVPlacement(0,G4ThreeVector(X,Y,Z),logicWBWV,"WBWV",logicWorld, false,0,checkOverlaps);
-  G4VisAttributes* WBWVvis = new G4VisAttributes(1);
-  WBWVvis->SetForceWireframe(false);
-  WBWVvis->SetDaughtersInvisible(false);
-  WBWVvis->SetColor(0.0,1.0,1.0);
-  logicWBWV->SetVisAttributes(WBWVvis);
-
-  //Beamdump water barrel walls - BDWB
-  par[1] = BDWRin;
-  par[2] = BDWRout;
-  par[3] = BDWLZ/2;
-  G4Tubs* solidBDWB = new G4Tubs("BDWB",par[1],par[2],par[3],0,2*pi);
-  G4LogicalVolume* logicBDWB = new G4LogicalVolume(solidBDWB,GetMaterial("Aluminum"),"BDWB");
-  X = 0;
-  Y = 0;
-  Z = 0;
-  G4VPhysicalVolume* physBDWB = new G4PVPlacement(0,G4ThreeVector(X,Y,Z),logicBDWB,"BDWB",logicWBWV, false,0,checkOverlaps);
-  G4VisAttributes* BDWBvis = new G4VisAttributes(1);
-  BDWBvis->SetForceWireframe(false);
-  BDWBvis->SetColor(1.0,1.0,1.0);
-  BDWBvis->SetDaughtersInvisible(false);
-  logicBDWB->SetVisAttributes(BDWBvis);
-
- //Beam dump Exchanger tube - BDET
-  G4double BDETRin = 9.63*conv*cm;
-  G4double BDETRout = 10.005*conv*cm;
-  G4double BDETlength = 126*conv*cm;
-  par[1] = 0;
-  par[2] = BDETRout;
-  par[3] = BDETlength/2;
-  G4Tubs* solidBDET = new G4Tubs("BDET",par[1],par[2],par[3],0,2*pi);
-  G4LogicalVolume* logicBDET = new G4LogicalVolume(solidBDET,GetMaterial("Water"),"BDET");
-  X = 0;
-  Y = 0;
-  Z = BDWLZ/2 - BDETlength/2;
-  G4VPhysicalVolume* physBDET = new G4PVPlacement(0,G4ThreeVector(X,Y,Z),logicBDET,"BDET",logicWBWV, false,0,checkOverlaps);
-  G4VisAttributes* BDETvis = new G4VisAttributes(1);
-  BDETvis->SetForceWireframe(false);
-  BDETvis->SetColor(0.0,0.0,1.0);
-  BDETvis->SetDaughtersInvisible(false);
-  logicBDET->SetVisAttributes(BDETvis);
- 
-  //Up/Down Plates - BDUP
-  G4double BDUPRin = 0;
-  G4double BDUPRout = 9.625*conv*cm;
-  G4double BDUPlength = 13.38*conv*cm;
-  G4double AlTotlength = 42.4*conv*cm; //BDUPlength + BDFBlength
-  par[1] = BDUPRin;
-  par[2] = BDUPRout;
-  par[3] = BDUPlength/2;
-  G4Tubs* solidBDUP = new G4Tubs("BDUP",par[1],par[2],par[3],0,2*pi);
-  G4LogicalVolume* logicBDUP = new G4LogicalVolume(solidBDUP,GetMaterial("Aluminum"),"BDUP");
-  X = 0;
-  Y = 0;
-  Z = (BDETlength/2 - BDUPlength/2);
-  G4VPhysicalVolume* physBDUP = new G4PVPlacement(0,G4ThreeVector(X,Y,Z),logicBDUP,"BDUP",logicBDET, false,0,checkOverlaps);
-  G4VisAttributes* BDUPvis = new G4VisAttributes(1);
-  BDUPvis->SetForceWireframe(false);
-  BDUPvis->SetDaughtersInvisible(false);
-  logicBDUP->SetVisAttributes(BDUPvis);
-
- //Fin Plate block - BDFB
-  G4double BDFBx = 14*conv*cm;
-  G4double BDFBy = 14*conv*cm;
-  G4double BDFBlength = 29.02*conv*cm;
-  par[1] = BDFBx/2;
-  par[2] = BDFBy/2;
-  par[3] = BDFBlength/2;
-  G4Box* solidBDFB = new G4Box("BDFB",par[1],par[2],par[3]);
-  G4LogicalVolume* logicBDFB = new G4LogicalVolume(solidBDFB,GetMaterial("Aluminum"),"BDFB");
-  X = 0;
-  Y = 0;
-  Z = (BDETlength/2 - BDUPlength - BDFBlength/2);
-  G4VPhysicalVolume* physBDFB = new G4PVPlacement(0,G4ThreeVector(X,Y,Z),logicBDFB,"BDFB",logicBDET, false,0,checkOverlaps);
-  G4VisAttributes* BDFBvis = new G4VisAttributes(1);
-  BDFBvis->SetForceWireframe(false);
-  BDFBvis->SetDaughtersInvisible(false);
-  logicBDFB->SetVisAttributes(BDFBvis);
-
-  //////////////Kill particles at BMDC water barrel (Beam Dump)////////////
-  
-  BMDCDetSD* BMDCDet = new BMDCDetSD("/BMDCDet");
-  G4SDManager* BMDCsdman = G4SDManager::GetSDMpointer();
-  BMDCsdman->AddNewDetector(BMDCDet);
-  logicWBWV->SetSensitiveDetector(BMDCDet);
-  logicBDWB->SetSensitiveDetector(BMDCDet);
-  logicBDET->SetSensitiveDetector(BMDCDet);
-  logicBDUP->SetSensitiveDetector(BMDCDet);
-  logicBDFB->SetSensitiveDetector(BMDCDet);
 
 
   /////////////////////////////////////////////////////////////////////////
@@ -569,7 +479,9 @@ HallA::HallA(B1DetectorConstruction *dc, G4LogicalVolume *logicWorld):fDetCon(dc
   ///////////////////////////////////////////////////////////////////////////
 
   //Beam Line is described in Beamline.cc
-  Beamline* beamline = new Beamline(dc, this, logicWorld);
+  if( gRadConfig->BuildDetector("BeamlineDS") ) {
+    Beamline* beamline = new Beamline(dc, this, logicWorld);
+  }
 
 
   ///////////////////////////////////////////////////////////////////////////

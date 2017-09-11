@@ -64,6 +64,13 @@ Beamline::Beamline(B1DetectorConstruction *dc, HallA *ha, G4LogicalVolume *logic
  for(int i=0;i<8;i++) BPtubeLength[i] *= conv*cm; //convert to cm
 
  G4double BLToffset = TBLoffset + TBLlength + TBL_BLoffset + 0.0010*cm; 
+ // Length of tube 7 should be cut down a little to prevent entering beam
+ // dump area
+ G4double diff = 0;
+ for(int i=0;i<7;i++) diff += BPtubeLength[i];
+ diff += BLToffset - Rhall;
+ BPtubeLength[6] -= diff;
+
 
 
  //Beam line flange towards the center of the hall, BLT1 (Beam Line Tube 1)
@@ -213,6 +220,10 @@ Beamline::Beamline(B1DetectorConstruction *dc, HallA *ha, G4LogicalVolume *logic
  BLT7Wvis->SetColor(1.0,0.0,0.0);
  logicBLT7W->SetVisAttributes(BLT7Wvis);
 
+
+ // Removed the beamline parts within the dump from this function.
+ // They now are pushed to the Dump specific class
+ /*
 //Beam Line Tube 8 (BLT8)
  G4Tubs* solidBLT8 = new G4Tubs("BLT8",0,BPtubeOD[7]/2,BPtubeLength[7]/2,0,2*pi);
  G4LogicalVolume* logicBLT8 = new G4LogicalVolume(solidBLT8,GetMaterial("Vacuum"),"BLT8");
@@ -257,6 +268,7 @@ Beamline::Beamline(B1DetectorConstruction *dc, HallA *ha, G4LogicalVolume *logic
  G4VisAttributes* BWBTWvis = new G4VisAttributes(1);
  BWBTWvis->SetColor(0.0,1.0,0.0);
  logicBWBTW->SetVisAttributes(BWBTWvis);
+ */
 
 
  /////////////////////////////////////////////////////////////////

@@ -27,6 +27,7 @@ private:
   G4UIcmdWithAString *targetCmd;
   G4UIcmdWithADouble *targetThickRLCmd;
   CmdWithAStringAndBool *buildDetectorCmd;
+  G4UIcmdWithABool *killDumpParticlesCmd;
 };
 
 #endif//Messenger_HH

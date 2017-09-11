@@ -11,6 +11,11 @@ enum class RadQ1Version{
   COPPER, // Water cooled "normal" Cu magnets
   APEX // Copper Q1, but basically both defined in a gdml file
 };
+enum class RadBeamDumpVersion {
+  ORIGCODED, // Originally coded version in this code. Though, I do not know
+             // who coded it and where the numbers came from
+  UPDATEDVERSION // (jc2) Updated Version based on notes from George Kharashvili
+};
 
 struct RadConfigDetector {
   G4bool build;
@@ -32,6 +37,8 @@ public:
   RadTargetType   TargetType;
   RadQ1Version    Q1Version;
   G4double        TargetThickRL;
+  RadBeamDumpVersion BeamDumpVersion;
+  G4bool          KillParticluesAtDump;
 
   std::map<G4String,RadConfigDetector> ConfigDetectorMap;
   void AddDetectorBuild(G4String name, G4bool build = true,

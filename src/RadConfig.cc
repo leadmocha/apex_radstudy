@@ -13,12 +13,22 @@ RadConfig::RadConfig()
   Q1Version = RadQ1Version::APEX;
   //Q1Version = RadQ1Version::SUPERCONDUCTING;
   TargetThickRL = 0.053; // 5.3% target thickness, assuming APEX W
+  BeamDumpVersion = RadBeamDumpVersion::UPDATEDVERSION;
+  // By default do not kill the particles at the Dump (Water Barrel)
+  // (But the user can turn it off to make it faster. Previous iterations
+  // of this code just killed all particles that passed through the water
+  // barrel, but it's possible some stuff may make it back into the hall,
+  // so I leave it on by default).
+  KillParticluesAtDump = false;
 
   // Generate BuildDetector
   AddDetectorBuild("HallA",true,true);
+  AddDetectorBuild("HallAFloor",true,true);
   AddDetectorBuild("HRS",true,true);
   AddDetectorBuild("Septum",true,true);
   AddDetectorBuild("Target",true,true);
+  AddDetectorBuild("BeamDump",true,true);
+  AddDetectorBuild("BeamlineDS",true,true);
 }
 
 RadConfig::~RadConfig()

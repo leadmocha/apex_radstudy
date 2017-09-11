@@ -186,10 +186,19 @@ void B1DetectorConstruction::ConstructMaterials(){
   density = 0.2124*g/cm3;
   G4Material* BLT8mat = nist->BuildMaterialWithNewDensity("BLT8mat","G4_Al",density);
   fMaterialsMap["BLT8mat"] = BLT8mat; //Material for Beam Line Tube 8
+  // Also make it the material for the dump's beampipes
+  fMaterialsMap["BLDmat"] = BLT8mat; //Material for Beam Line Tube 8
 
   G4Material* Copper = nist->FindOrBuildMaterial("G4_Cu");
   fMaterialsMap["Copper"] = Copper;
 
+  // Nitrogen Gas at room temperature
+  G4Material* Nitrogen = nist->FindOrBuildMaterial("G4_N");
+  fMaterialsMap["Nitrogen"] = Nitrogen;
+
+  // Helium Gas at room temperature
+  G4Material* Helium = nist->FindOrBuildMaterial("G4_He");
+  fMaterialsMap["Helium"] = Helium;
 
   //Ground
   //WinGrnd = Weight(H20)/Weight(SiO2) = 0.175
