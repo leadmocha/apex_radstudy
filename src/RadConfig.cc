@@ -19,7 +19,7 @@ RadConfig::RadConfig()
   // of this code just killed all particles that passed through the water
   // barrel, but it's possible some stuff may make it back into the hall,
   // so I leave it on by default).
-  KillParticluesAtDump = false;
+  StopParticluesAtDump = false;
 
   // Generate BuildDetector
   AddDetectorBuild("HallA",true,true);

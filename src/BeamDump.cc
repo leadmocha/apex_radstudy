@@ -13,6 +13,7 @@
 #include "G4SubtractionSolid.hh"
 #include "G4SDManager.hh"
 #include <G4UnionSolid.hh>
+#include <G4UserLimits.hh>
 #include "RadConfig.hh"
 
 #include "G4ThreeVector.hh"
@@ -634,7 +635,8 @@ void BeamDump::BuildWaterBarrel(G4LogicalVolume *logicWorld,
   //////////////Kill particles at BMDC water barrel (Beam Dump)////////////
 
   /* Should we kill particles at the water barrel? */
-  if( gRadConfig->KillParticluesAtDump ) {
+  if( gRadConfig->StopParticluesAtDump ) {
+    G4cout << "Stopping particles *at* dump water barrel" << G4endl;
     BMDCDetSD* BMDCDet = new BMDCDetSD("/BMDCDet");
     G4SDManager* BMDCsdman = G4SDManager::GetSDMpointer();
     BMDCsdman->AddNewDetector(BMDCDet);
@@ -643,5 +645,21 @@ void BeamDump::BuildWaterBarrel(G4LogicalVolume *logicWorld,
     logicBDET->SetSensitiveDetector(BMDCDet);
     logicBDUP->SetSensitiveDetector(BMDCDet);
     logicBDFB->SetSensitiveDetector(BMDCDet);
+  } else { // Otherwise they'll be killed at the end of the water barrel
+    // just to prevent tracking through all the soil behind the beam dump
+    G4cout << "Stopping particles *after* dump water barrel" << G4endl;
+    G4Tubs *solParticleStop = new G4Tubs("BeamDumpParticleStop",
+        0.,BDWRout,1*mm/2.,0.,2*pi);
+    G4LogicalVolume *logicParticleStop = new G4LogicalVolume(solParticleStop,
+        GetMaterial("Nitrogen"),"BeamDumpParticleStop");
+    (void*)new G4PVPlacement(0, G4ThreeVector(pos.x(),pos.y(),
+          pos.z() + BDWLZ + 1.0*mm ),
+        logicParticleStop,"BeamDumpParticleStop",logicWorld,
+        false,0,checkOverlaps);
+    logicParticleStop->SetVisAttributes(new G4VisAttributes(
+          G4Colour(1.,0.,0.,0.99)));
+    // Finally, stop the particles by placing a step limiter
+    logicParticleStop->SetUserLimits(new G4UserLimits(0.,0.,0.,DBL_MAX,
+          DBL_MAX));
   }
 }

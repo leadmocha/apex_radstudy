@@ -38,7 +38,7 @@ public:
   RadQ1Version    Q1Version;
   G4double        TargetThickRL;
   RadBeamDumpVersion BeamDumpVersion;
-  G4bool          KillParticluesAtDump;
+  G4bool          StopParticluesAtDump;
 
   std::map<G4String,RadConfigDetector> ConfigDetectorMap;
   void AddDetectorBuild(G4String name, G4bool build = true,
