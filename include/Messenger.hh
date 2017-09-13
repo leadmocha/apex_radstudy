@@ -10,6 +10,7 @@ class G4UIcmdWithADouble;
 class G4UIcmdWithAString;
 class CmdWithAStringAndBool;
 class G4UIcmdWithABool;
+class G4UIcmdWith3VectorAndUnit;
 class G4UIcmdWith3Vector;
 
 class Messenger : public G4UImessenger {
@@ -28,6 +29,8 @@ private:
   G4UIcmdWithADouble *targetThickRLCmd;
   CmdWithAStringAndBool *buildDetectorCmd;
   G4UIcmdWithABool *stopDumpParticlesCmd;
+  G4UIcmdWith3VectorAndUnit *setPrimaryVertexCmd;
+  G4UIcmdWith3Vector *setPrimaryDirectionCmd;
 };
 
 #endif//Messenger_HH

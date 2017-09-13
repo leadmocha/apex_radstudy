@@ -6,6 +6,7 @@
 #include "G4UIcmdWithADoubleAndUnit.hh"
 #include "G4UIcmdWithADouble.hh"
 #include "G4UIcmdWithABool.hh"
+#include "G4UIcmdWith3VectorAndUnit.hh"
 #include "G4UIcmdWith3Vector.hh"
 #include <CmdWithAStringAndBool.hh>
 
@@ -19,6 +20,16 @@ Messenger::Messenger()
   fieldCmd->SetGuidance("TOSCA field map file");
   fieldCmd->SetParameterName("field", true);
   fieldCmd->SetDefaultValue("");
+
+  setPrimaryVertexCmd = new G4UIcmdWith3VectorAndUnit(
+      "/radStudy/setPrimaryVertex",this);
+  setPrimaryVertexCmd->SetGuidance("Set Primary (electron) Vertex");
+  setPrimaryVertexCmd->SetParameterName("X","Y","Z",false);
+
+  setPrimaryDirectionCmd = new G4UIcmdWith3Vector(
+      "/radStudy/setPrimaryDirection",this);
+  setPrimaryDirectionCmd->SetGuidance("Set Primary (electron) Direction");
+  setPrimaryDirectionCmd->SetParameterName("X","Y","Z",false);
 
   buildDetectorCmd = new CmdWithAStringAndBool("/radStudy/buildDetector", this);
   buildDetectorCmd->SetGuidance("Build Detector detector");
@@ -106,6 +117,12 @@ void Messenger::SetNewValue(G4UIcommand* cmd, G4String newValue)
   } else if (cmd == stopDumpParticlesCmd) {
     gRadConfig->StopParticluesAtDump =
       stopDumpParticlesCmd->GetNewBoolValue(newValue);
+  } else if (cmd == setPrimaryVertexCmd) {
+    gRadConfig->PrimaryVertex = setPrimaryVertexCmd->GetNew3VectorValue(
+        newValue);
+  } else if (cmd == setPrimaryDirectionCmd) {
+    gRadConfig->PrimaryDirection = setPrimaryDirectionCmd->GetNew3VectorValue(
+        newValue);
   } else {
     G4cerr << "Unknown command!!" << G4endl;
     exit(-1);

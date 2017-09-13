@@ -57,7 +57,7 @@ B1PrimaryGeneratorAction::B1PrimaryGeneratorAction()
   G4ParticleDefinition* particle
     = particleTable->FindParticle(particleName="e-");
   fParticleGun->SetParticleDefinition(particle);
-  fParticleGun->SetParticleMomentumDirection(G4ThreeVector(0.,0.,1.));
+  fParticleGun->SetParticleMomentumDirection(gRadConfig->PrimaryDirection);
   fParticleGun->SetParticleEnergy(gRadConfig->BeamEnergy);
 
 }
@@ -76,7 +76,8 @@ void B1PrimaryGeneratorAction::GeneratePrimaries(G4Event* anEvent)
   //this function is called at the begining of each event
   //
   
-  fParticleGun->SetParticlePosition(G4ThreeVector(0,0,-10*m));
+  //fParticleGun->SetParticlePosition(G4ThreeVector(0,0,-10*m));
+  fParticleGun->SetParticlePosition(gRadConfig->PrimaryVertex);
   // Temporary for the Carbon target
   //fParticleGun->SetParticlePosition(G4ThreeVector(0,0,-105*CLHEP::cm-1*CLHEP::cm));
 

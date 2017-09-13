@@ -20,6 +20,8 @@ RadConfig::RadConfig()
   // barrel, but it's possible some stuff may make it back into the hall,
   // so I leave it on by default).
   StopParticluesAtDump = false;
+  PrimaryVertex = G4ThreeVector(0.,0.,-10*m);
+  PrimaryDirection = G4ThreeVector(0.,0.,1.0);
 
   // Generate BuildDetector
   AddDetectorBuild("HallA",true,true);

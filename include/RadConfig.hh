@@ -3,6 +3,7 @@
 
 #include "globals.hh"
 #include <map>
+#include <G4ThreeVector.hh>
 
 // Note, this only works in C++11 (and higher)
 enum class RadTargetType { APEX, CARBON, PREX, APEXCARBON };
@@ -39,6 +40,8 @@ public:
   G4double        TargetThickRL;
   RadBeamDumpVersion BeamDumpVersion;
   G4bool          StopParticluesAtDump;
+  G4ThreeVector   PrimaryVertex;
+  G4ThreeVector   PrimaryDirection;
 
   std::map<G4String,RadConfigDetector> ConfigDetectorMap;
   void AddDetectorBuild(G4String name, G4bool build = true,
