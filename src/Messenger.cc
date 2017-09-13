@@ -51,6 +51,10 @@ Messenger::Messenger()
   q1versionCmd->SetGuidance("Options: APEX, SuperConducting");
   q1versionCmd->SetParameterName("q1version", false);
 
+  beamDumpVersionCmd = new G4UIcmdWithAString("/radStudy/beamDumpVersion", this);
+  beamDumpVersionCmd->SetGuidance("Options: ORIGCODED, Updated");
+  beamDumpVersionCmd->SetParameterName("beamDumpVersion", false);
+
   targetCmd = new G4UIcmdWithAString("/radStudy/target", this);
   targetCmd->SetGuidance("Options: APEX, Carbon, PREX, APEXCarbon ");
   targetCmd->SetParameterName("target", false);
@@ -91,6 +95,16 @@ void Messenger::SetNewValue(G4UIcommand* cmd, G4String newValue)
       gRadConfig->Q1Version = RadQ1Version::SUPERCONDUCTING;
     } else {
       G4cerr << "Not a valid Q1 version specified: " << newValue << G4endl;
+    }
+  } else if ( cmd == beamDumpVersionCmd) {
+    G4String beamDumpVer = newValue;
+    beamDumpVer.toLower();
+    if(beamDumpVer == "origcoded") {
+      gRadConfig->BeamDumpVersion = RadBeamDumpVersion::ORIGCODED;
+    } else if ( beamDumpVer == "updated" ) {
+      gRadConfig->BeamDumpVersion = RadBeamDumpVersion::UPDATEDVERSION;
+    } else {
+      success = false;
     }
   } else if (cmd == targetCmd ) {
     G4String target = newValue;

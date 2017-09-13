@@ -25,6 +25,7 @@ private:
   G4UIcmdWithAString *rootfileCmd;
   G4UIcmdWithADoubleAndUnit *beamEnergyCmd;
   G4UIcmdWithAString *q1versionCmd;
+  G4UIcmdWithAString *beamDumpVersionCmd;
   G4UIcmdWithAString *targetCmd;
   G4UIcmdWithADouble *targetThickRLCmd;
   CmdWithAStringAndBool *buildDetectorCmd;
