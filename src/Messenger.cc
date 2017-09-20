@@ -138,12 +138,15 @@ void Messenger::SetNewValue(G4UIcommand* cmd, G4String newValue)
     gRadConfig->PrimaryDirection = setPrimaryDirectionCmd->GetNew3VectorValue(
         newValue);
   } else {
-    G4cerr << "Unknown command!!" << G4endl;
+    G4cerr << "Unknown command: " << cmd->GetCommandName()
+      << " !!! Exiting!!! " << G4endl;
     exit(-1);
   }
 
   if(!success) {
-    G4cerr << "Command failed, exiting!!!" << G4endl;
+    G4cerr << "Error: Command failed: \""
+    << cmd->GetCommandName() << " " << newValue
+    << "\" Exiting!!!" << G4endl;
     exit(-1);
   }
 }
