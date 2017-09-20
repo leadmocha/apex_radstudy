@@ -175,7 +175,7 @@ HallA::HallA(B1DetectorConstruction *dc, G4LogicalVolume *logicWorld):fDetCon(dc
   par[2] = Rhall + Thall;
   par[3] = Flrdeep/2;
   G4Tubs* solidConWall = new G4Tubs("ConWall",par[1],par[2],par[3],0,2*pi);
-  if(!solidBeamDump) {
+  if(beamDumpOrigVersion) {
     //Remove material for beam dump from Concrete Wall
     par[1] = BmDEX/2 + BDWth;
     par[2] = BmDEY/2 + BDWth;
@@ -185,7 +185,8 @@ HallA::HallA(B1DetectorConstruction *dc, G4LogicalVolume *logicWorld):fDetCon(dc
     Y = -(sqrt(pow(Rhall,2)-pow((BmDEX/2+abs(TgX)),2)) + BmDEZ/2);
     Z = - Flrdeep/2 + bmheight - 0.5*(BmDEY-BmDmY);
     //originBeamDump = X;
-    originBeamDump.set(X,Z,Y);
+    //originBeamDump.set(X,Y + Flrdeep/2. - bmheight,-Z );
+    //originBeamDump.set(X,Z + (Flrdeep/2. - bmheight), -Y);
   } else { // Do it the better way, just get the actual beam dump solid
     X = originBeamDump.x();
     //Y = -(sqrt(pow(Rhall,2)-pow((BmDEX/2+abs(TgX)),2)) + BmDEZ/2);
@@ -215,12 +216,15 @@ HallA::HallA(B1DetectorConstruction *dc, G4LogicalVolume *logicWorld):fDetCon(dc
   G4Tubs* solidHATW = new G4Tubs("HATW",par[1],par[2],par[3],pi*250/180,pi*40/180);
 
   //Remove material for beam dump
-  //X = 0;
-  //Y = -(sqrt(pow(Rhall,2)-pow((BmDEX/2+abs(TgX)),2)) + BmDEZ/2);
-  //Z = - Flrdeep/2 + bmheight - 0.5*(BmDEY-BmDmY);
-  X = originBeamDump.x();
-  Y = -originBeamDump.z();
-  Z = -Flrdeep/2 + bmheight + originBeamDump.y();
+  if(beamDumpOrigVersion){
+    X = 0;
+    Y = -(sqrt(pow(Rhall,2)-pow((BmDEX/2+abs(TgX)),2)) + BmDEZ/2);
+    Z = - Flrdeep/2 + bmheight - 0.5*(BmDEY-BmDmY);
+  } else {
+    X = originBeamDump.x();
+    Y = -originBeamDump.z();
+    Z = -Flrdeep/2. + bmheight + originBeamDump.y();
+  }
   G4SubtractionSolid* solidHATW_BD = new G4SubtractionSolid("HATW-BD1",solidHATW,
       solidBeamDump,rot270X,G4ThreeVector(X,Y,Z));
 
