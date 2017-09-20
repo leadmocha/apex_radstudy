@@ -633,13 +633,14 @@ void BeamDump::BuildWaterBarrel(G4LogicalVolume *logicWorld,
   logicBDFB->SetVisAttributes(BDFBvis);
 
   //////////////Kill particles at BMDC water barrel (Beam Dump)////////////
+  BMDCDetSD* BMDCDet = new BMDCDetSD("/BMDCDet");
+  G4SDManager* BMDCsdman = G4SDManager::GetSDMpointer();
+  BMDCsdman->AddNewDetector(BMDCDet);
 
   /* Should we kill particles at the water barrel? */
   if( gRadConfig->StopParticluesAtDump ) {
     G4cout << "Stopping particles *at* dump water barrel" << G4endl;
-    BMDCDetSD* BMDCDet = new BMDCDetSD("/BMDCDet");
-    G4SDManager* BMDCsdman = G4SDManager::GetSDMpointer();
-    BMDCsdman->AddNewDetector(BMDCDet);
+    // Set them all to the special sensitive detector that stops tracks
     logicWBWV->SetSensitiveDetector(BMDCDet);
     logicBDWB->SetSensitiveDetector(BMDCDet);
     logicBDET->SetSensitiveDetector(BMDCDet);
@@ -647,19 +648,39 @@ void BeamDump::BuildWaterBarrel(G4LogicalVolume *logicWorld,
     logicBDFB->SetSensitiveDetector(BMDCDet);
   } else { // Otherwise they'll be killed at the end of the water barrel
     // just to prevent tracking through all the soil behind the beam dump
+    // The idea will be to generate a cylinder that surrounds
+    // the water barrel, but missing the front face plate
     G4cout << "Stopping particles *after* dump water barrel" << G4endl;
-    G4Tubs *solParticleStop = new G4Tubs("BeamDumpParticleStop",
-        0.,BDWRout,1*mm/2.,0.,2*pi);
-    G4LogicalVolume *logicParticleStop = new G4LogicalVolume(solParticleStop,
-        GetMaterial("Nitrogen"),"BeamDumpParticleStop");
-    (void*)new G4PVPlacement(0, G4ThreeVector(pos.x(),pos.y(),
-          pos.z() + BDWLZ + 1.0*mm ),
-        logicParticleStop,"BeamDumpParticleStop",logicWorld,
+    par[0] = 1.0*mm/2.; // thickness
+    par[1] = 2.0*mm; // Spacing from water barrel surface
+    par[2] = BDWRout + par[1]; // inner radius
+    par[3] = par[2] + par[0]; // outer radius
+    par[4] = (BDWLZ+par[1])/2.0; // z
+    G4Tubs *solParticleStopEnd = new G4Tubs("BeamDumpParticleStopEnd",
+        0.,par[3],par[0],0.,2*pi);
+    G4Tubs *solParticleStopCyl = new G4Tubs("BeamDumpParticleStopCyl",
+        par[2],par[3],par[4],0.,2*pi);
+    G4LogicalVolume *logicParticleStopEnd = new G4LogicalVolume(solParticleStopEnd,
+        GetMaterial("Lead"),"BeamDumpParticleStop");
+    G4LogicalVolume *logicParticleStopCyl = new G4LogicalVolume(solParticleStopCyl,
+        GetMaterial("Lead"),"BeamDumpParticleStop");
+    X = pos.x();
+    Y = pos.y();
+    Z = pos.z() + par[1]/2. + par[4];
+    (void*)new G4PVPlacement(0, G4ThreeVector(X,Y,Z),
+        logicParticleStopCyl,"BeamDumpParticleStopCyl",logicWorld,
         false,0,checkOverlaps);
-    logicParticleStop->SetVisAttributes(new G4VisAttributes(
+    Z += par[4] + par[0];
+    (void*)new G4PVPlacement(0, G4ThreeVector(X,Y,Z),
+        logicParticleStopEnd,"BeamDumpParticleStopEnd",logicWorld,
+        false,0,checkOverlaps);
+    logicParticleStopEnd->SetVisAttributes(new G4VisAttributes(
           G4Colour(1.,0.,0.,0.99)));
-    // Finally, stop the particles by placing a step limiter
-    logicParticleStop->SetUserLimits(new G4UserLimits(0.,0.,0.,DBL_MAX,
-          DBL_MAX));
+    logicParticleStopCyl->SetVisAttributes(new G4VisAttributes(
+          G4Colour(1.,0.,0.,0.99)));
+    // Finally, to stop the particles, set them to this special sensitive
+    // detector that kills tracks
+    logicParticleStopEnd->SetSensitiveDetector(BMDCDet);
+    logicParticleStopCyl->SetSensitiveDetector(BMDCDet);
   }
 }
